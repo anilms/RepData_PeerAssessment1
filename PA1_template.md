@@ -4,14 +4,7 @@ output:
   html_document:
     keep_md: true
 ---
-```{r setup, include=FALSE}
-require(knitr)
-require(ggplot2)
-require(Hmisc)
-require(plyr)
-require(dplyr)
-knitr::opts_chunk$set(fig.path='figure/', fig.width=10, fig.height=8, warning=FALSE)
-```
+
 
 This assignment makes use of the following packages:  
  - ggplot2: For plots  
@@ -21,12 +14,14 @@ This assignment makes use of the following packages:
 
 ## Loading and preprocessing
 ** Load the data **
-```{r, echo=TRUE}
+
+```r
 dat<-read.csv("activity.csv",colClasses="character")
 ```
 
 ** Process/transform the data **
-```{r, echo=TRUE}
+
+```r
 dat$interval<-as.numeric(dat$interval)
 dat$date<-as.Date(dat$date)
 dat$steps<-as.numeric(dat$steps)
@@ -49,7 +44,8 @@ dat1<-dat[!is.na(dat$steps),]
 
 ## Steps per Day
 ** Make a histogram of the total number of steps taken each day **
-```{r, echo=TRUE}
+
+```r
 dat1<-group_by(dat1, date)
 stepsDay<-summarise(dat1, totSteps=sum(steps))
 hist(
@@ -64,16 +60,31 @@ hist(
   )
 ```
 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3-1.png) 
+
 ** Calculate and report the mean and median total number of steps taken per day **
-```{r, echo=TRUE}
+
+```r
 mean(stepsDay$totSteps)
+```
+
+```
+## [1] 10766.19
+```
+
+```r
 median(stepsDay$totSteps)
+```
+
+```
+## [1] 10765
 ```
 
 
 ## Daily Activity Pattern
 ** Make a time series plot of the 5-minute interval and the average number of steps taken across all days **
-```{r, echo=TRUE}
+
+```r
 dat1<-group_by(dat1, interval)
 activityDay<-summarise(dat1, avgSteps=mean(steps))
 plot(
@@ -87,28 +98,42 @@ plot(
   )
 ```
 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png) 
+
 ** Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps? **
-```{r, echo=TRUE}
+
+```r
 activityDay$interval[which.max(activityDay$avgSteps)]
+```
+
+```
+## [1] 835
 ```
 
 
 ## Imputing missing values
 ** Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs) **
-```{r, echo=TRUE}
+
+```r
 sum(!complete.cases(dat))
+```
+
+```
+## [1] 2304
 ```
 
 ** Fill in all missing values using mean of interval taken over all days **  
 ** Create a new dataset that is equal to the original dataset but with the missing data filled in. **
-```{r, echo=TRUE}
+
+```r
 datI <- ddply(dat, ~ interval, transform, steps = impute(steps, fun=mean))
 datI <- datI[order(datI$date), ]
 datI$steps <- round(as.numeric(datI$steps))
 ```
 
 ** Make a histogram of the total number of steps taken each day  **
-```{r, echo=TRUE}
+
+```r
 datI<-group_by(datI, date)
 stepsDay<-summarise(datI, totSteps=sum(steps))
 hist(
@@ -121,16 +146,34 @@ hist(
   xlim=c(0,25000), 
   ylim=c(0, 40)
   )
+```
 
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9-1.png) 
+
+```r
 datI<-group_by(datI, interval)
 activityDayI<-summarise(datI, avgSteps=mean(steps))
 qplot(interval, avgSteps, data=activityDayI)+geom_line()+geom_smooth(method=loess)
 ```
 
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9-2.png) 
+
 ** Calculate and report the mean and median total number of steps taken per day **
-```{r, echo=TRUE}
+
+```r
 mean(stepsDay$totSteps)
+```
+
+```
+## [1] 10765.64
+```
+
+```r
 median(stepsDay$totSteps)
+```
+
+```
+## [1] 10762
 ```
 Mean and median calculated with the Imputed data is slightly different from the original values.
 This is because most of the data missing are corresponding to intervals where there is less activity.
@@ -139,14 +182,16 @@ So the imputed data in these intervals bring down the overall mean and median.
 
 ## Weekdays vs Weekends
 ** Create a new factor variable 'Weekend' **
-```{r, echo=TRUE}
+
+```r
 dat1$Weekday<-weekdays(dat1$date)
 dat1$Weekend<-ifelse((dat1$Weekday == "Saturday") | (dat1$Weekday == "Sunday"), "Weekend", "Weekday")
 ```
 
 
 ** Make a panel plot containing a time series plot of the 5-minute interval and the average number of steps **
-```{r, echo=TRUE}
+
+```r
 dat1<-group_by(dat1, Weekend, interval)
 activityWeekend<-summarise(dat1, avgSteps=mean(steps))
 xyplot(
@@ -158,7 +203,11 @@ xyplot(
   ylab="Avg Steps",
   main="Activity Pattern"
   )
+```
 
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-1.png) 
+
+```r
 p <- qplot(
   interval,
   avgSteps, 
@@ -172,6 +221,8 @@ p <- p + geom_line()
 p <- p + geom_smooth(method=loess)
 plot(p)
 ```
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-2.png) 
 
 On weekdays, the activity is mainly in the morning around 8:30am.  
 However on the weekends, activity is more distributed during daytime and evening.

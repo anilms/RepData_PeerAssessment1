@@ -1,6 +1,6 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
+output:
   html_document:
     keep_md: true
 ---
@@ -8,47 +8,77 @@ output:
 
 ## Loading and preprocessing the data
 ```{r, echo=TRUE}
+require(ggplot2)
+require(Hmisc)
+require(plyr)
+require(dplyr)
+
 dat<-read.csv("activity.csv",colClasses="character")
+dat$interval<-as.numeric(dat$interval)
+dat$date<-as.Date(dat$date)
+dat$steps<-as.numeric(dat$steps)
+
+dat$time<-sapply(
+  dat$interval,
+  function(x) {
+    H<-x%/%100 ;
+    M<-x%%100 ;
+    H<-sprintf("%02d", H) ;
+    M<-sprintf("%02d", M) ;
+    paste(c(H, ':', M), collapse='')
+    }
+  )
+
+dat$Weekday<-weekdays(dat$date)
+dat$Weekend<-ifelse((dat$Weekday == "Saturday") | (dat$Weekday == "Sunday"), "Weekend", "Weekday")
+
 dat1<-dat[!is.na(dat$steps),]
-dat1$interval<-as.numeric(dat1$interval)
-dat1$date<-as.Date(dat1$date)
-dat1$steps<-as.numeric(dat1$steps)
 ```
 
 ## What is mean total number of steps taken per day?
 ```{r, echo=TRUE}
-stepsDay<-aggregate(dat1$steps, by=list(dat1$date), FUN=sum)
-names(stepsDay)<-c("date", "steps")
-
-require(ggplot2)
-qplot(stepsDay$steps, binwidth=5000)
-mean(stepsDay$steps)
-median(stepsDay$steps)
+dat1<-group_by(dat1, date)
+stepsDay<-summarise(dat1, totSteps=sum(steps))
+qplot(totSteps, data=stepsDay, binwidth=5000)
+mean(stepsDay$totSteps)
+median(stepsDay$totSteps)
 ```
 
 
 ## What is the average daily activity pattern?
 ```{r, echo=TRUE}
-activityDay<-aggregate(dat1$steps, by=list(dat1$interval), FUN=mean)
-names(activityDay)<-c("interval", "steps")
-qplot(activityDay$interval, activityDay$steps)+geom_line()
+dat1<-group_by(dat1, interval)
+activityDay<-summarise(dat1, avgSteps=mean(steps))
+qplot(interval, avgSteps, data=activityDay)+geom_line()+geom_smooth()
 ```
 
 
 
 ## Imputing missing values
 ```{r, echo=TRUE}
+# http://stackoverflow.com/questions/9322773/how-to-replace-na-with-mean-by-subset-in-r-impute-with-plyr
+datI <- ddply(dat, ~ interval, transform, steps = impute(steps, fun=mean))
+datI <- datI[order(datI$date), ]
+datI$steps <- round(as.numeric(datI$steps))
+
+datI<-group_by(datI, date)
+stepsDay<-summarise(datI, totSteps=sum(steps))
+qplot(totSteps, data=stepsDay, binwidth=5000)
+mean(stepsDay$totSteps)
+median(stepsDay$totSteps)
+
+datI<-group_by(datI, interval)
+activityDayI<-summarise(datI, avgSteps=mean(steps))
+qplot(interval, avgSteps, data=activityDayI)+geom_line()+geom_smooth()
 ```
 
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
 ```{r, echo=TRUE}
-dat1$weekday<-weekdays(dat1$date)
-dat1$weekend<-(dat1$weekday == "Saturday") | (dat1$weekday == "Sunday")
-activityWeekend<-aggregate(dat1$steps, by=list(dat1$weekend, dat1$interval), FUN=mean)
-names(activityWeekend)<-c("weekend", "interval", "steps")
-qplot(activityWeekend$interval,activityWeekend$steps, color=activityWeekend$weekend)+geom_line()+geom_smooth()
+dat1<-group_by(dat1, Weekend, interval)
+activityWeekend<-summarise(dat1, avgSteps=mean(steps))
+qplot(interval,avgSteps, color=Weekend, data=activityWeekend)+geom_line()+geom_smooth()
 ```
 
 
